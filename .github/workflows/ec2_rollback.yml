@@ -1,0 +1,28 @@
+name: EC2 Rollback
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install boto3
+
+      - name: Download Rollback Data
+        uses: actions/download-artifact@v4
+        with:
+          name: rollback-data
+
+      - name: Perform Rollback
+        run: python rollback_instance.py
