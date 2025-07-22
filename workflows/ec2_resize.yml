@@ -1,0 +1,62 @@
+name: EC2 Safe Resizer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install boto3
+
+      - name: Run Usage Analysis
+        run: python analyze_usage.py
+
+      - name: Upload Recommendation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: recommendation
+          path: recommendation.json
+
+  resize:
+    needs: analyze
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install boto3
+
+      - name: Download Recommendation
+        uses: actions/download-artifact@v4
+        with:
+          name: recommendation
+
+      - name: Perform Safe Resize
+        run: python resize_instance_safe.py
+
+      - name: Upload Rollback Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-data
+          path: rollback.json
+
+      - name: Notify (Optional)
+        if: always()
+        run: echo "Instance resized. Notification system can be integrated here."
