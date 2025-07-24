@@ -80,6 +80,11 @@ jobs:
           echo "Reading input.json..."
           INSTANCE_ID=$(jq -r '.instance_id' input.json)
           REGION=$(jq -r '.region' input.json)
+          echo "$INSTANCE_ID"
+          echo "$REGION"
+
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
+          echo "REGION=${REGION}" >> $GITHUB_ENV
 
       - name: Setup Python
         uses: actions/setup-python@v5
