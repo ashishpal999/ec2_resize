@@ -52,6 +52,9 @@ jobs:
       - name: Run Usage Analysis
         run: python scripts/analyze_recomend_groq.py "$INSTANCE_ID" "$REGION"
 
+      - name: Print recomendations
+        run: cat resize_recommendation.json
+
       - name: Upload Recommendation Artifact
         uses: actions/upload-artifact@v4
         with:
