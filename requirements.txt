@@ -1,6 +1,5 @@
 boto3
 requests
 python-dotenv
-json
 datetime
 groq
