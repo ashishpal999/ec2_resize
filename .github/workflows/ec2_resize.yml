@@ -6,6 +6,8 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -39,11 +41,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies
-        run: pip install boto3
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Run Usage Analysis
-        run: python scripts/analyze_recomend.py
+        run: python scripts/analyze_recomend_groq.py
 
       - name: Upload Recommendation Artifact
         uses: actions/upload-artifact@v4

@@ -22,3 +22,9 @@ This project automates EC2 instance resizing based on CPU usage with safety chec
 - AWS credentials stored as GitHub Secrets.
 - AWS EC2 and CloudWatch permissions.
 - GitHub Environment protection configured.
+
+
+## AI options
+openai
+groq
+
