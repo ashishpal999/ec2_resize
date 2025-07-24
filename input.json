@@ -1,5 +1,7 @@
 {
-  "instance_id": "i-0abcd1234ef567890",
+  "instance_id": "i-002f0be3dcb41391e",
   "region": "us-east-1",
-  "desired_instance_type": "t3.large"
+  "desired_instance_type": "t3.large",
+  "requester_email": "amandeep.rattan@gmail.com",
+  "approver_email": "amandeep.rattan@gmail.com"
 }

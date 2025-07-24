@@ -10,6 +10,30 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Read input.json and set variables
+        id: read_json
+        run: |
+          echo "Reading input.json..."
+          INSTANCE_ID=$(jq -r '.instance_id' input.json)
+          REGION=$(jq -r '.region' input.json)
+          DESIRED_INSTANCE_TYPE=$(jq -r '.desired_instance_type' input.json)
+          REQUESTER_EMAIL=$(jq -r '.requester_email' input.json)
+          APPROVER_EMAIL=$(jq -r '.approver_email' input.json)
+
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
+          echo "REGION=${REGION}" >> $GITHUB_ENV
+          echo "DESIRED_INSTANCE_TYPE=${DESIRED_INSTANCE_TYPE}" >> $GITHUB_ENV
+          echo "REQUESTER_EMAIL=${REQUESTER_EMAIL}" >> $GITHUB_ENV
+          echo "APPROVER_EMAIL=${APPROVER_EMAIL}" >> $GITHUB_ENV
+
+      - name: Output variables
+        run: |
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Region: $REGION"
+          echo "Desired Instance Type: $DESIRED_INSTANCE_TYPE"
+          echo "Requester Email: $REQUESTER_EMAIL"
+          echo "Approver Email: $APPROVER_EMAIL
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -19,7 +43,7 @@ jobs:
         run: pip install boto3
 
       - name: Run Usage Analysis
-        run: python analyze_usage.py
+        run: python scripts/analyze_recomend.py
 
       - name: Upload Recommendation Artifact
         uses: actions/upload-artifact@v4
@@ -49,7 +73,7 @@ jobs:
           name: recommendation
 
       - name: Perform Safe Resize
-        run: python resize_instance_safe.py
+        run: python scripts/resize_ec2.py
 
       - name: Upload Rollback Artifact
         uses: actions/upload-artifact@v4

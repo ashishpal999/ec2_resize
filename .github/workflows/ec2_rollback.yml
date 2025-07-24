@@ -25,4 +25,4 @@ jobs:
           name: rollback-data
 
       - name: Perform Rollback
-        run: python rollback_instance.py
+        run: python scripts/rollback_instance.py

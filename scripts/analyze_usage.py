@@ -8,8 +8,8 @@ def fetch_metrics(instance_id, region):
         Namespace='AWS/EC2',
         MetricName='CPUUtilization',
         Dimensions=[{'Name': 'InstanceId', 'Value': instance_id}],
-        StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=7),
-        EndTime=datetime.datetime.utcnow(),
+        StartTime=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7),
+        EndTime=datetime.datetime.now(datetime.UTC),
         Period=3600,
         Statistics=['Average']
     )
@@ -25,7 +25,7 @@ def recommend_action(cpu):
         return "no_change"
 
 if __name__ == "__main__":
-    with open('input.json') as f:
+    with open('../input.json') as f:
         inputs = json.load(f)
 
     instance_id = inputs['instance_id']
