@@ -74,6 +74,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Read input.json and set variables
+        id: read_json
+        run: |
+          echo "Reading input.json..."
+          INSTANCE_ID=$(jq -r '.instance_id' input.json)
+          REGION=$(jq -r '.region' input.json)
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -89,7 +96,7 @@ jobs:
 
       - name: Take Snapshots & Prepare Rollback Data
         run: |
-          python scripts/snapshots_and_save_rollback.py "$INSTANCE_ID" "$AWS_DEFAULT_REGION"
+          python scripts/snapshots_and_save_rollback.py "$INSTANCE_ID" "$REGION"
 
       - name: Print Rollback Data
         run: cat rollback.json
