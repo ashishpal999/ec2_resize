@@ -16,6 +16,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Read input.json and set variables
+        id: read_json
+        run: |
+          echo "Reading input.json..."
+          INSTANCE_ID=$(jq -r '.instance_id' input.json)
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -26,7 +33,7 @@ jobs:
 
       - name: Download Rollback Data from S3
         run: |
-          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/rollback/${{ github.event.inputs.instance_id }}_rollback.json rollback.json
+          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/rollback/${INSTANCE_ID}_rollback.json rollback.json
 
       - name: Perform Rollback
         run: python scripts/rollback_instance.py
