@@ -104,9 +104,9 @@ def build_instance_shortlist(current_instance_type, valid_types):
 # ---------- CPU Threshold Logic ----------
 
 def threshold_decision(cpu):
-    if cpu < 30:
+    if cpu < 10:
         return "downgrade"
-    elif cpu > 50:
+    elif cpu > 10:
         return "upgrade"
     else:
         return "retain"
