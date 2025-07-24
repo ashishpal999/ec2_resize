@@ -32,7 +32,7 @@ jobs:
           echo "Region: $REGION"
           echo "Desired Instance Type: $DESIRED_INSTANCE_TYPE"
           echo "Requester Email: $REQUESTER_EMAIL"
-          echo "Approver Email: $APPROVER_EMAIL
+          echo "Approver Email: $APPROVER_EMAIL"
 
       - name: Setup Python
         uses: actions/setup-python@v5
