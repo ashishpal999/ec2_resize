@@ -1,6 +1,7 @@
 import boto3
 import os
 import json
+import sys
 from datetime import datetime, timedelta
 from groq import Groq
 from dotenv import load_dotenv
@@ -146,8 +147,12 @@ def validate_instance_type(suggested_type, valid_types):
 # ---------- Main Execution ----------
 
 if __name__ == "__main__":
-    instance_id = input("Enter EC2 Instance ID: ")
-    region = input("Enter AWS Region (e.g. us-east-1): ")
+    if len(sys.argv) != 3:
+        print("Usage: python analyze_usage.py <instance_id> <region>")
+        sys.exit(1)
+
+    instance_id = sys.argv[1]
+    region = sys.argv[2]
 
     instance_type, architecture = fetch_instance_details(instance_id, region)
     valid_instance_types = fetch_available_instance_types(region, architecture)
