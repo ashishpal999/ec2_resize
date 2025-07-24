@@ -11,6 +11,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -23,10 +24,11 @@ jobs:
       - name: Install Dependencies
         run: pip install boto3
 
-      - name: Download Rollback Data
-        uses: actions/download-artifact@v4
-        with:
-          name: rollback-data
+      - name: Download Rollback Data from S3
+        run: |
+          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/rollback/${{ github.event.inputs.instance_id }}_rollback.json rollback.json
 
       - name: Perform Rollback
         run: python scripts/rollback_instance.py
+        env:
+          ROLLBACK_FILE_PATH: rollback.json

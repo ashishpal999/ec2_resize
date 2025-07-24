@@ -69,6 +69,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -86,14 +87,19 @@ jobs:
         with:
           name: recommendation
 
+      - name: Take Snapshots & Prepare Rollback Data
+        run: |
+          python scripts/snapshots_and_save_rollback.py "$INSTANCE_ID" "$AWS_DEFAULT_REGION"
+
+      - name: Print Rollback Data
+        run: cat rollback.json
+
+      - name: Upload Rollback Data to S3
+        run: |
+          aws s3 cp rollback.json s3://${{ env.S3_BUCKET_NAME }}/rollback/${INSTANCE_ID}_rollback.json
+
       - name: Perform Safe Resize
         run: python scripts/resize_ec2.py
-
-      - name: Upload Rollback Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rollback-data
-          path: rollback.json
 
       - name: Notify (Optional)
         if: always()
