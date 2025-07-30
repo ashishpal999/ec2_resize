@@ -1,0 +1,56 @@
+name: EC2 Resize override
+
+on:
+  repository_dispatch:
+    types: [trigger-override]
+
+jobs:
+  resize:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Read input.json and set variables
+        id: read_json
+        run: |
+          echo "Reading input.json..."
+          INSTANCE_ID=$(jq -r '.instance_id' input.json)
+          REGION=$(jq -r '.region' input.json)
+          echo "$INSTANCE_ID"
+          echo "$REGION"
+
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
+          echo "REGION=${REGION}" >> $GITHUB_ENV
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install boto3
+
+      - name: Take Snapshots & Prepare Rollback Data
+        run: |
+          python scripts/snapshots_and_save_rollback.py "$INSTANCE_ID" "$REGION"
+
+      - name: Print Rollback Data
+        run: cat rollback.json
+
+      - name: Upload Rollback Data to S3
+        run: |
+          aws s3 cp rollback.json s3://${{ env.S3_BUCKET_NAME }}/rollback/${INSTANCE_ID}_rollback.json
+
+      - name: Perform Safe Resize
+        run: python scripts/resize_ec2_override.py
+
+      - name: Notify (Optional)
+        if: always()
+        run: echo "Instance resized. Notification system can be integrated here."
