@@ -54,7 +54,7 @@ def resize_instance(instance_id, region, new_type, requester, approver):
     print("🚀 Instance started successfully.")
 
 if __name__ == "__main__":
-    with open('../input.json') as f:
+    with open('input.json') as f:
         data = json.load(f)
 
     instance_id = data['instance_id']
