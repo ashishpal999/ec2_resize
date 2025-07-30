@@ -38,7 +38,7 @@ jobs:
 
       - name: Download Rollback Data from S3
         run: |
-          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json
+          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json resize_recommendation.json
 
       - name: Take Snapshots & Prepare Rollback Data
         run: |
