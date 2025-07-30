@@ -1,0 +1,38 @@
+# .github/workflows/manual-approval.yml
+name: Simulate Approval Options
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval_status:
+        description: 'Approval decision'
+        required: true
+        type: choice
+        default: rejected
+        options:
+          - approved
+          - override
+          - rejected
+
+jobs:
+  handle_approval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo the decision
+        run: |
+          echo "User selected: ${{ github.event.inputs.approval_status }}"
+
+      - name: Run if approved
+        if: ${{ github.event.inputs.approval_status == 'approved' }}
+        run: |
+          echo "✅ Approved! Proceeding with deployment."
+
+      - name: Run if override
+        if: ${{ github.event.inputs.approval_status == 'override' }}
+        run: |
+          echo "⚠️ Override! Proceeding with caution."
+
+      - name: Run if rejected
+        if: ${{ github.event.inputs.approval_status == 'rejected' }}
+        run: |
+          echo "❌ Rejected. Halting workflow."
