@@ -17,7 +17,18 @@ on:
 jobs:
   handle_approval:
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     steps:
+      - name: Download Rollback Data from S3
+        run: |
+          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json resize_recommendation.json
+          echo "=================AI Suggestion=================="
+          cat resize_recommendation.json
+          
       - name: Echo the decision
         run: |
           echo "User selected: ${{ github.event.inputs.approval_status }}"
@@ -26,6 +37,12 @@ jobs:
         if: ${{ github.event.inputs.approval_status == 'approved' }}
         run: |
           echo "✅ Approved! Proceeding with deployment."
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"trigger-deployment"}'
 
       - name: Run if override
         if: ${{ github.event.inputs.approval_status == 'override' }}
