@@ -61,3 +61,9 @@ jobs:
         with:
           name: recommendation
           path: resize_recommendation.json
+
+      - name: Upload Recommendation Artifact to S3
+        run: |
+          aws s3 cp rollback.json s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json
+
+
