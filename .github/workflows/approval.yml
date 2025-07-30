@@ -47,7 +47,6 @@ jobs:
       - name: Run if override
         if: ${{ github.event.inputs.approval_status == 'override' }}
         run: |
-          run: |
           echo "⚠️ Override! Proceeding with caution."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
