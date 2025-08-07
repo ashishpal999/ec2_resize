@@ -29,6 +29,9 @@ jobs:
           DECISION=$(jq -r '.decision' resize_recommendation.json)
           echo "Decision extracted: $DECISION"
           echo "decision=$DECISION" >> $GITHUB_OUTPUT
+
+      - name: Go OR No-Go
+        run: echo "Not progressing further because the decision was to retain the current config by AI"
         
   take_snapshot:
     runs-on: ubuntu-latest
