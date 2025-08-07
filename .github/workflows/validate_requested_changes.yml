@@ -1,4 +1,4 @@
-name: EC2 requested changes validation with AI
+name: EC2 Requested Change Validation With AI
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Usage Analysis
+      - name: Run Compatibility Analysis With AI
         run: python scripts/validate_request.py input.json
 
       - name: Print recomendations
