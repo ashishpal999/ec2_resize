@@ -2,7 +2,14 @@ name: EC2 Rollback
 
 on:
   workflow_dispatch:
-
+    inputs:
+      reason:
+        description: 'Reason for the rollback'
+        required: true
+        default: 'Manual Trigger'
+  repository_dispatch:
+    types: [rollback-trigger]
+    
 jobs:
   rollback:
     runs-on: ubuntu-latest
