@@ -1,4 +1,4 @@
-# .github/workflows/manual-approval.yml
+# .github/workflows/manual_approval.yml
 name: Simulate Approval Options
 env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
