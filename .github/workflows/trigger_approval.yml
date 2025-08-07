@@ -10,7 +10,7 @@ jobs:
   trigger_manual_approval_workflow:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      actions: write
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Trigger Manual Approval Workflow
