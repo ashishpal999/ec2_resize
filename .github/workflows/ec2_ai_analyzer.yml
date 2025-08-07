@@ -1,7 +1,10 @@
 name: EC2 Analysis and Recomendation
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["EC2 requested changes validation with AI"] # Name of the triggering workflow
+    types:
+      - completed
 
 jobs:
   analyze:
