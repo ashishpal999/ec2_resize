@@ -64,6 +64,10 @@ jobs:
 
           echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
           echo "REGION=${REGION}" >> $GITHUB_ENV
+
+      - name: Download Recommendation Artifact from S3
+        run: |
+            aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json resize_recommendation.json
           
       - name: Perform Safe Resize
         run: python scripts/resize_ec2.py
