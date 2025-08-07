@@ -20,11 +20,18 @@ This project automates EC2 instance resizing based on CPU usage with safety chec
 
 ## Requirements
 - AWS credentials stored as GitHub Secrets.
+   - AWS_ACCESS_KEY_ID
+   - AWS_DEFAULT_REGION
+   - AWS_SECRET_ACCESS_KEY
+   - S3_BUCKET_NAME
 - AWS EC2 and CloudWatch permissions.
-- GitHub Environment protection configured.
+- GitHub token variable
+   - PERSONAL_ACCESS_TOKEN
+- AI API Key Variable
+   - GROQ_API_KEY
 
 
 ## AI options
 openai
-groq
+groq -- We are using this for this project.
 
