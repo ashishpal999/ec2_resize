@@ -13,6 +13,8 @@ on:
 jobs:
   go_no_go_with_ai_recomendations:
     runs-on: ubuntu-latest
+    outputs:
+      decision_output: ${{ steps.decision_step.outputs.decision }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
