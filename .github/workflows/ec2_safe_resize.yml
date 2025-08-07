@@ -72,6 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: resize
     if: failure()
+    permissions:
+      contents: write
     steps:
       - name: Trigger Rollback Workflow via repository_dispatch
         uses: actions/github-script@v6
