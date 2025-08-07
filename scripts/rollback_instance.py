@@ -4,9 +4,7 @@ import time
 import sys
 
 def get_root_volume_id(ec2_client, instance_id):
-    """
-    Finds the root volume ID and device name for the given instance.
-    """
+    """Finds the root volume ID and device name for the given instance."""
     try:
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
         instance = response['Reservations'][0]['Instances'][0]
@@ -20,9 +18,7 @@ def get_root_volume_id(ec2_client, instance_id):
     return None, None
 
 def rollback_instance_with_snapshot():
-    """
-    Performs a snapshot-based rollback of an EC2 instance, including instance type change and cleanup.
-    """
+    """Performs a snapshot-based rollback of an EC2 instance, including instance type change and cleanup."""
     try:
         with open('rollback.json') as f:
             data = json.load(f)
@@ -90,29 +86,47 @@ def rollback_instance_with_snapshot():
     ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=original_instance_type)
     print("Instance type changed.")
 
-    # 6. Start the instance again
+    # 6. Set the new volume to be deleted on termination
+    print(f"Setting DeleteOnTermination to True for the new volume {new_volume_id}...")
+    try:
+        ec2.modify_instance_attribute(
+            InstanceId=instance_id,
+            BlockDeviceMappings=[
+                {
+                    'DeviceName': device_name,
+                    'Ebs': {
+                        'DeleteOnTermination': True
+                    }
+                },
+            ]
+        )
+        print("DeleteOnTermination attribute updated.")
+    except Exception as e:
+        print(f"Warning: Failed to set DeleteOnTermination for {new_volume_id}. It may persist after termination. Error: {e}")
+
+    # 7. Start the instance again
     print(f"Starting instance {instance_id}...")
     ec2.start_instances(InstanceIds=[instance_id])
     waiter = ec2.get_waiter('instance_running')
     waiter.wait(InstanceIds=[instance_id])
     print("Instance started. Rollback complete.")
 
-    # 7. Cleanup (NEW STEP)
+    # 8. Cleanup
     print("\n--- Starting Cleanup ---")
     
     # Delete the old volume
     try:
         ec2.delete_volume(VolumeId=old_volume_id)
-        print(f"✅ Old volume {old_volume_id} deleted successfully.")
+        print(f"Old volume {old_volume_id} deleted successfully.")
     except Exception as e:
-        print(f"❌ Error deleting old volume {old_volume_id}: {e}")
+        print(f"Error deleting old volume {old_volume_id}: {e}")
 
     # Delete the snapshot used for rollback
     try:
         ec2.delete_snapshot(SnapshotId=snapshot_ids[0])
-        print(f"✅ Snapshot {snapshot_ids[0]} deleted successfully.")
+        print(f"Snapshot {snapshot_ids[0]} deleted successfully.")
     except Exception as e:
-        print(f"❌ Error deleting snapshot {snapshot_ids[0]}: {e}")
+        print(f"Error deleting snapshot {snapshot_ids[0]}: {e}")
 
 if __name__ == "__main__":
     rollback_instance_with_snapshot()
