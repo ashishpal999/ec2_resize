@@ -11,6 +11,7 @@ load_dotenv()
 # ---------- AWS Metrics & Instance Info ----------
 
 def fetch_metrics(instance_id, region):
+    """Fetches average CPU utilization from CloudWatch for the last 7 days."""
     client = boto3.client('cloudwatch', region_name=region)
     resp = client.get_metric_statistics(
         Namespace='AWS/EC2',
@@ -25,6 +26,7 @@ def fetch_metrics(instance_id, region):
     return sum(datapoints) / len(datapoints) if datapoints else 0
 
 def fetch_instance_details(instance_id, region):
+    """Fetches the current instance type and architecture."""
     client = boto3.client('ec2', region_name=region)
     reservations = client.describe_instances(InstanceIds=[instance_id])['Reservations']
     instance = reservations[0]['Instances'][0]
@@ -33,13 +35,12 @@ def fetch_instance_details(instance_id, region):
 # ---------- Instance Types Cache ----------
 
 def fetch_available_instance_types(region, architecture, cache_file='instance_types_cache.json'):
+    """Fetches and caches all valid instance types for a given architecture and region."""
     now = datetime.utcnow()
-
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             cache = json.load(f)
             key = f"{region}_{architecture}"
-
             if key in cache:
                 last_updated_str = cache[key].get('last_updated')
                 if last_updated_str:
@@ -50,12 +51,11 @@ def fetch_available_instance_types(region, architecture, cache_file='instance_ty
     ec2 = boto3.client('ec2', region_name=region)
     paginator = ec2.get_paginator('describe_instance_types')
     valid_types = []
-
     for page in paginator.paginate():
         for itype in page['InstanceTypes']:
             if architecture in itype['ProcessorInfo']['SupportedArchitectures']:
                 valid_types.append(itype['InstanceType'])
-
+    
     key = f"{region}_{architecture}"
     if os.path.exists(cache_file):
         with open(cache_file) as f:
@@ -75,29 +75,26 @@ def fetch_available_instance_types(region, architecture, cache_file='instance_ty
 
 # ---------- Logical Shortlist Builder ----------
 
+def _get_size_rank(instance_type):
+    """Internal helper to get a numerical rank for instance size."""
+    sizes = ['nano', 'micro', 'small', 'medium', 'large', 'xlarge', '2xlarge', '4xlarge', '8xlarge', '16xlarge', '32xlarge', '48xlarge']
+    try:
+        size = instance_type.split('.')[1]
+        return sizes.index(size)
+    except (IndexError, ValueError):
+        return -1 # Return -1 for unknown sizes
+
 def build_instance_shortlist(current_instance_type, valid_types):
     family = current_instance_type.split('.')[0]
-    sizes = ['nano', 'micro', 'small', 'medium', 'large', 'xlarge', '2xlarge', '4xlarge', '8xlarge', '16xlarge', '32xlarge', '48xlarge']
-
-    # Detect current size
-    current_size = current_instance_type.split('.')[1]
-
-    # Build shortlist: same family + compatible families
     compatible_families = [family]
     if family.startswith('t3'):
         compatible_families += ['t4g', 't3a']
     if family.startswith('m6'):
         compatible_families += ['m5', 'm6i', 'm7i']
 
-    # Shortlist: only same/compatible families
     shortlist = [t for t in valid_types if any(t.startswith(fam) for fam in compatible_families)]
 
-    # Sort shortlist logically (family-wise + size-wise)
-    def size_rank(t):
-        size = t.split('.')[1]
-        return sizes.index(size) if size in sizes else 999
-
-    shortlist = sorted(shortlist, key=lambda t: (compatible_families.index(t.split('.')[0]) if t.split('.')[0] in compatible_families else 99, size_rank(t)))
+    shortlist = sorted(shortlist, key=lambda t: (compatible_families.index(t.split('.')[0]) if t.split('.')[0] in compatible_families else 99, _get_size_rank(t)))
 
     return shortlist
 
@@ -119,6 +116,11 @@ def ai_suggest_instance_type(current_instance_type, architecture, decision, shor
     shortlist_trimmed = ', '.join(shortlist[:20])
     current_family = current_instance_type.split('.')[0]
 
+    # --- NEW: Add logic to determine if a downgrade is possible ---
+    can_downgrade = any(_get_size_rank(t) < _get_size_rank(current_instance_type) for t in shortlist)
+    if decision == "downgrade" and not can_downgrade:
+        return "NO_DOWNGRADE_POSSIBLE"
+
     prompt = f"""You are optimizing AWS EC2 instance sizing.
 
 Current instance type: {current_instance_type}
@@ -130,8 +132,8 @@ Available options for {architecture} in this region (choose strictly from this l
 {shortlist_trimmed}
 
 Recommend a new instance type that represents a logical {decision} (next size up/down). Avoid unnecessary large jumps.
-
-Respond with only the instance type name."""
+Respond with only the instance type name. If a downgrade is requested but no smaller size is available, suggest the current instance type and explain why it can't be downsized.
+"""
 
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
@@ -167,21 +169,34 @@ if __name__ == "__main__":
 
     suggested_type = None
     validated = False
-
-    if decision in ["upgrade", "downgrade"]:
+    
+    # --- FIXED LOGIC ---
+    if decision == "downgrade":
         shortlist = build_instance_shortlist(instance_type, valid_instance_types)
-        print(f"\nFiltered Instance Shortlist ({len(shortlist)}): {shortlist[:10]}...")
+        can_downgrade = any(_get_size_rank(t) < _get_size_rank(instance_type) for t in shortlist)
+        
+        if not can_downgrade:
+            print("\nThis instance is already the smallest in its family. No action needed.")
+            decision = "retain"
+        else:
+            suggested_type = ai_suggest_instance_type(instance_type, architecture, decision, shortlist)
+            print(f"\nGroq AI Suggested Instance Type: {suggested_type}")
+            validated = validate_instance_type(suggested_type, valid_instance_types)
 
+    elif decision == "upgrade":
+        shortlist = build_instance_shortlist(instance_type, valid_instance_types)
         suggested_type = ai_suggest_instance_type(instance_type, architecture, decision, shortlist)
         print(f"\nGroq AI Suggested Instance Type: {suggested_type}")
-
         validated = validate_instance_type(suggested_type, valid_instance_types)
-        if validated:
-            print(f"\n✅ Recommendation Validated: Proceed to {decision} to {suggested_type}")
-        else:
-            print(f"\n❌ WARNING: Groq suggested invalid instance type ({suggested_type}). Action aborted.")
+        
     else:
         print("\nNo resizing required based on thresholds.")
+
+    # Check validation and print final result
+    if validated:
+        print(f"\n✅ Recommendation Validated: Proceed to {decision} to {suggested_type}")
+    elif suggested_type and not validated:
+        print(f"\n❌ WARNING: Groq suggested invalid instance type ({suggested_type}). Action aborted.")
 
     result = {
         "instance_id": instance_id,
