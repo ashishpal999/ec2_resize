@@ -11,11 +11,33 @@ on:
     types: [trigger-deployment]
 
 jobs:
-  take_snapshot:
+  go_no_go_with_ai_recomendations:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+
+      - name: Download Recommendation Artifact from S3
+        run: |
+            aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json resize_recommendation.json
+         
+      - name: Extract Decision from JSON
+        id: decision_step
+        run: |
+          DECISION=$(jq -r '.decision' resize_recommendation.json)
+          echo "Decision extracted: $DECISION"
+          echo "decision=$DECISION" >> $GITHUB_OUTPUT
+        
+  take_snapshot:
+    runs-on: ubuntu-latest
+    needs: go_no_go_with_ai_recomendations
+    if: ${{ needs.go_no_go_with_ai_recomendations.outputs.decision_output != 'retain' }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Take Snapshot
+        run: echo "Taking a snapshot because the decision was not retain the current config by AI."
 
       - name: Read input.json and set variables
         id: read_json
