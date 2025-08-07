@@ -17,10 +17,6 @@ on:
           - approved
           - override
           - rejected
-  workflow_run:
-    workflows: ["EC2 Analysis and Recomendation"]
-    types:
-      - completed
 
 jobs:
   handle_approval:
