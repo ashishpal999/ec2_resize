@@ -4,7 +4,9 @@ import time
 import sys
 
 def get_root_volume_id(ec2_client, instance_id):
-    """Finds the root volume ID and device name for the given instance."""
+    """
+    Finds the root volume ID and device name for the given instance.
+    """
     try:
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
         instance = response['Reservations'][0]['Instances'][0]
@@ -18,7 +20,9 @@ def get_root_volume_id(ec2_client, instance_id):
     return None, None
 
 def rollback_instance_with_snapshot():
-    """Performs a snapshot-based rollback of an EC2 instance, including instance type change."""
+    """
+    Performs a snapshot-based rollback of an EC2 instance, including instance type change and cleanup.
+    """
     try:
         with open('rollback.json') as f:
             data = json.load(f)
@@ -81,7 +85,7 @@ def rollback_instance_with_snapshot():
     waiter.wait(VolumeIds=[new_volume_id])
     print("New volume attached.")
 
-    # 5. Modify instance type (NEW STEP)
+    # 5. Modify instance type
     print(f"Modifying instance {instance_id} to type {original_instance_type}...")
     ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=original_instance_type)
     print("Instance type changed.")
@@ -93,7 +97,22 @@ def rollback_instance_with_snapshot():
     waiter.wait(InstanceIds=[instance_id])
     print("Instance started. Rollback complete.")
 
-    print(f"Cleanup: Old volume {old_volume_id} is now available and can be deleted manually.")
+    # 7. Cleanup (NEW STEP)
+    print("\n--- Starting Cleanup ---")
+    
+    # Delete the old volume
+    try:
+        ec2.delete_volume(VolumeId=old_volume_id)
+        print(f"✅ Old volume {old_volume_id} deleted successfully.")
+    except Exception as e:
+        print(f"❌ Error deleting old volume {old_volume_id}: {e}")
+
+    # Delete the snapshot used for rollback
+    try:
+        ec2.delete_snapshot(SnapshotId=snapshot_ids[0])
+        print(f"✅ Snapshot {snapshot_ids[0]} deleted successfully.")
+    except Exception as e:
+        print(f"❌ Error deleting snapshot {snapshot_ids[0]}: {e}")
 
 if __name__ == "__main__":
     rollback_instance_with_snapshot()
