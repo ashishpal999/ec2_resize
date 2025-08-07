@@ -6,6 +6,7 @@ env:
   S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     
 on:
+  workflow_dispatch:
   repository_dispatch:
     types: [trigger-override]
 
