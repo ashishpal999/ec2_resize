@@ -4,9 +4,7 @@ import time
 import sys
 
 def get_root_volume_id(ec2_client, instance_id):
-    """
-    Finds the root volume ID and device name for the given instance.
-    """
+    """Finds the root volume ID and device name for the given instance."""
     try:
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
         instance = response['Reservations'][0]['Instances'][0]
@@ -20,9 +18,7 @@ def get_root_volume_id(ec2_client, instance_id):
     return None, None
 
 def rollback_instance_with_snapshot():
-    """
-    Performs a snapshot-based rollback of an EC2 instance.
-    """
+    """Performs a snapshot-based rollback of an EC2 instance, including instance type change."""
     try:
         with open('rollback.json') as f:
             data = json.load(f)
@@ -32,10 +28,11 @@ def rollback_instance_with_snapshot():
 
     instance_id = data.get('instance_id')
     region = data.get('region')
+    original_instance_type = data.get('original_instance_type')
     snapshot_ids = data.get('snapshot_ids')
 
-    if not all([instance_id, region, snapshot_ids]):
-        print("Required data (instance_id, region, snapshot_ids) not found in rollback.json")
+    if not all([instance_id, region, original_instance_type, snapshot_ids]):
+        print("Required data (instance_id, region, original_instance_type, snapshot_ids) not found in rollback.json")
         sys.exit(1)
 
     ec2 = boto3.client('ec2', region_name=region)
@@ -84,7 +81,12 @@ def rollback_instance_with_snapshot():
     waiter.wait(VolumeIds=[new_volume_id])
     print("New volume attached.")
 
-    # 5. Start the instance again
+    # 5. Modify instance type (NEW STEP)
+    print(f"Modifying instance {instance_id} to type {original_instance_type}...")
+    ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=original_instance_type)
+    print("Instance type changed.")
+
+    # 6. Start the instance again
     print(f"Starting instance {instance_id}...")
     ec2.start_instances(InstanceIds=[instance_id])
     waiter = ec2.get_waiter('instance_running')
