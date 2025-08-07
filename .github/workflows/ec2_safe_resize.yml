@@ -1,18 +1,17 @@
 name: EC2 Safe Resizer
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
 on:
   repository_dispatch:
     types: [trigger-deployment]
 
 jobs:
-  resize:
+  take_snapshot:
     runs-on: ubuntu-latest
-    environment: production
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -37,10 +36,6 @@ jobs:
       - name: Install Dependencies
         run: pip install boto3
 
-      - name: Download Rollback Data from S3
-        run: |
-          aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/artifact/resize_recommendation.json resize_recommendation.json
-
       - name: Take Snapshots & Prepare Rollback Data
         run: |
           python scripts/snapshots_and_save_rollback.py "$INSTANCE_ID" "$REGION"
@@ -51,9 +46,46 @@ jobs:
       - name: Upload Rollback Data to S3
         run: |
           aws s3 cp rollback.json s3://${{ env.S3_BUCKET_NAME }}/rollback/${INSTANCE_ID}_rollback.json
+          
+  resize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
+      - name: Read input.json and set variables
+        id: read_json
+        run: |
+          echo "Reading input.json..."
+          INSTANCE_ID=$(jq -r '.instance_id' input.json)
+          REGION=$(jq -r '.region' input.json)
+          echo "$INSTANCE_ID"
+          echo "$REGION"
+
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> $GITHUB_ENV
+          echo "REGION=${REGION}" >> $GITHUB_ENV
+          
       - name: Perform Safe Resize
         run: python scripts/resize_ec2.py
+
+  trigger_rollback:
+    runs-on: ubuntu-latest
+    needs: resize
+    if: failure()
+    steps:
+      - name: Trigger Rollback Workflow via repository_dispatch
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'rollback-trigger',
+              client_payload: {
+                reason: 'The "Perform Safe Resize" job failed.'
+              }
+            });
 
       - name: Notify (Optional)
         if: always()
