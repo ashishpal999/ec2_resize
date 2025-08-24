@@ -2,7 +2,7 @@
   "account_id": "1111111111111",
   "instance_id": "i-0f46dacbb708aba7b",
   "region": "ap-south-1",
-  "desired_instance_type": "m5.xlarge",
+  "desired_instance_type": "t2.medium",
   "dry_run": true
   "requester_email": "ashishpal999@gmail.com",
   "approver_email": "ashishpal999@gmail.com"
