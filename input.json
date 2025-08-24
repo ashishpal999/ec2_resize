@@ -1,8 +1,9 @@
 {
   "account_id": "1111111111111",
-  "instance_id": "",
-  "region": "us-east-1",
+  "instance_id": "i-0f46dacbb708aba7b",
+  "region": "ap-south-1",
   "desired_instance_type": "m5.xlarge",
-  "requester_email": "amandeep.rattan@gmail.com",
-  "approver_email": "amandeep.rattan@gmail.com"
+  "dry_run": true
+  "requester_email": "ashishpal999@gmail.com",
+  "approver_email": "ashishpal999@gmail.com"
 }
