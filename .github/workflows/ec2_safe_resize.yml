@@ -12,7 +12,6 @@ on:
 
 jobs:
   go_no_go_with_ai_recomendations:
-    if: false   # disables the entire job
     runs-on: ubuntu-latest
     outputs:
       decision_output: ${{ steps.decision_step.outputs.decision }}
@@ -35,10 +34,9 @@ jobs:
         run: echo "Not progressing further because the decision was to retain the current config by AI"
         
   take_snapshot:
-    if: false
     runs-on: ubuntu-latest
-    # needs: go_no_go_with_ai_recomendations
-    # if: ${{ needs.go_no_go_with_ai_recomendations.outputs.decision_output != 'retain' }}
+    needs: go_no_go_with_ai_recomendations
+    if: ${{ needs.go_no_go_with_ai_recomendations.outputs.decision_output != 'retain' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
